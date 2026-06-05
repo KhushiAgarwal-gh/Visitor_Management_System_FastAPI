@@ -137,18 +137,7 @@ Authentication & authorization
 Real-world visitor tracking system
 Clean and scalable API design
 
----
 
-Agar chaho to main next step me tumhare liye:
-- 🔥 :contentReference[oaicite:0]{index=0}
-- 🔥 :contentReference[oaicite:1]{index=1}
-- 🔥 :contentReference[oaicite:2]{index=2}
-- 🔥 :contentReference[oaicite:3]{index=3}
-
-sab bana dunga 👍
-pura ek sath de jo m copy paste kr pau sidha
-
-Here is your complete professional README.md in one single copy-paste block 👇
 
 # Visitor Management System API
 
