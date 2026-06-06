@@ -10,8 +10,8 @@ from jose import jwt
 from zoneinfo import ZoneInfo
 from sqlalchemy import and_
 import cv2
-#import shutil
-#import os
+import shutil
+import os
 from fastapi import UploadFile,File,Form
 from sqlalchemy import func
 
@@ -147,6 +147,8 @@ class Visitor(Base):
     id_type = Column(String)
     id_number = Column(String)
     photo = Column(String)
+    checkin_photo = Column(String, nullable=True)
+    checkout_photo = Column(String, nullable=True)
     
     check_in = Column(DateTime, nullable=True)
     check_out = Column(DateTime, nullable=True)
@@ -217,6 +219,7 @@ def signup(name:str=Form(...),email:str=Form(...),password:str=Form(...)):
     "email": email
 }
 
+
 @app.post("/login")
 def login(email_or_user_id: str = Form(...),
     password: str = Form(...) ):
@@ -264,15 +267,14 @@ async def create_visitor(
         }
 
     visitor_id = f"VIS{random.randint(1000,9999)}"
-    
-   # if not os.path.exists("photos"): os.makedirs("photos")
+     
+    os.makedirs("visitor_photos", exist_ok=True)
 
-    #file_path = f"photos/{visitor_id}.jpg"
 
-    #with open(file_path, "wb") as buffer:
-       # shutil.copyfileobj(photo.file, buffer)
+    file_path = f"visitor_photos/{visitor_id}_{photo.filename}"
 
-    #img = cv2.imread(file_path)
+    with open(file_path, "wb") as buffer:
+       shutil.copyfileobj(photo.file, buffer)
 
     visitor = Visitor(
 
@@ -292,7 +294,7 @@ async def create_visitor(
 
         id_number=id_number,
 
-        #photo=file_path
+        photo=file_path
     )
 
     db.add(visitor)
@@ -313,20 +315,21 @@ async def create_visitor(
 
         "authority": visitor.authority,
 
-        #"photo": visitor.photo
+        "photo": visitor.photo
     }
 
 
 
 
 @app.put("/visitor/checkin")
-def checkin(data: ActionModel):
+async def checkin(email_or_user_id:str=Form(...),
+                  photo:UploadFile=File(...)):
 
     db = SessionLocal()
 
     visitor = db.query(Visitor).filter(
-        (Visitor.email == data.email_or_user_id) |
-        (Visitor.visitor_id == data.email_or_user_id)
+        (Visitor.email == email_or_user_id) |
+        (Visitor.visitor_id == email_or_user_id)
     ).first()
 
     if not visitor:
@@ -334,7 +337,14 @@ def checkin(data: ActionModel):
             "message": "Visitor not found"
         }
 
-    
+    os.makedirs("checkin_photos", exist_ok=True)
+
+    checkin_path = f"checkin_photos/{visitor.visitor_id}_{photo.filename}"
+
+    with open(checkin_path, "wb") as buffer:
+       shutil.copyfileobj(photo.file, buffer)
+
+    visitor.checkin_photo = checkin_path
 
     visitor.check_in = datetime.now(ZoneInfo("Asia/Kolkata"))
 
@@ -361,7 +371,7 @@ def checkin(data: ActionModel):
 
         "id_number": visitor.id_number,
 
-        #"photo":visitor.photo,
+        "checkin_photo": visitor.checkin_photo,
 
         "check_in_time": visitor.check_in
     }
@@ -453,19 +463,31 @@ def get_visitors(
     }
 
 @app.put("/visitor/checkout")
-def checkout(data: ActionModel):
+async def checkout(email_or_user_id: str = Form(...),
+       photo: UploadFile = File(...)
+):
 
     db = SessionLocal()
 
     visitor = db.query(Visitor).filter(
-        (Visitor.email == data.email_or_user_id) |
-        (Visitor.visitor_id == data.email_or_user_id)
+        (Visitor.email == email_or_user_id) |
+        (Visitor.visitor_id == email_or_user_id)
     ).first()
 
     if not visitor:
         return {
             "message": "Visitor not found"
         }
+    
+
+    os.makedirs("checkout_photos", exist_ok=True)
+
+    checkout_path = f"checkout_photos/{visitor.visitor_id}_{photo.filename}"
+
+    with open(checkout_path, "wb") as buffer:
+       shutil.copyfileobj(photo.file, buffer)
+
+    visitor.checkout_photo = checkout_path
 
     visitor.check_out = datetime.now(ZoneInfo("Asia/Kolkata"))
 
@@ -477,7 +499,7 @@ def checkout(data: ActionModel):
 
         "visitor_id": visitor.visitor_id,
 
-        #"photo":visitor.photo,
+        "checkout_photo": visitor.checkout_photo,
 
         "check_out_time": visitor.check_out
     }
